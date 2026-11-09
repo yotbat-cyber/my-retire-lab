@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>노후 현금흐름 연구소</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0e1a;
+      --card: #141a2b;
+      --card-hover: #1c2540;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #d4af37;
+      --accent-soft: rgba(212, 175, 55, 0.15);
+      --accent2: #34d399;
+      --border: #2a3349;
+      --input: #0f1525;
+      --shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.45);
+      --radius: 18px;
+    }
+    [data-theme="light"] {
+      --bg: #f8f6f2;
+      --card: #ffffff;
+      --card-hover: #f9f7f3;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --accent: #b8860b;
+      --accent-soft: rgba(184, 134, 11, 0.1);
+      --accent2: #059669;
+      --border: #e5e1d8;
+      --input: #faf9f6;
+      --shadow: 0 10px 30px -10px rgba(0,0,0,0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      transition: all 0.3s ease;
+    }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      backdrop-filter: blur(12px);
+    }
+    .logo { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.3px; }
+    nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+    nav button {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.45rem 0.75rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    nav button:hover { background: var(--accent-soft); color: var(--text); }
+    nav button.active { background: var(--accent); color: white; }
+    .theme-btn {
+      background: var(--accent-soft);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .theme-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+    .container { max-width: 1120px; margin: 0 auto; padding: 2rem 1.25rem; }
+    .section { display: none; }
+    .section.active { display: block; animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); margin-bottom: 2rem; font-size: 1.05rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+    .home-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow);
+    }
+    .home-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      background: var(--card-hover);
+    }
+    .home-card h3 { font-size: 1.05rem; margin-bottom: 0.35rem; }
+    .home-card p { color: var(--muted); font-size: 0.88rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.85rem; }
+    label { display: block; margin-bottom: 0.3rem; color: var(--muted); font-size: 0.8rem; font-weight: 500; }
+    input, select {
+      width: 100%;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--input);
+      color: var(--text);
+      font-size: 0.95rem;
+      margin-bottom: 0.8rem;
+      transition: all 0.2s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    button.primary {
+      background: var(--accent);
+      color: #0a0e1a;
+      border: none;
+      padding: 0.85rem 1.6rem;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+    button.primary:hover { filter: brightness(1.15); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { padding: 0.75rem 0.6rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    tr:hover td { background: var(--accent-soft); }
+    .filter-bar { display: flex; gap: 0.4rem; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .filter-bar button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 0.35rem 0.8rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+    .filter-bar button.active, .filter-bar button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+    .result { background: var(--accent-soft); border-radius: 14px; padding: 1.4rem; margin-top: 1.2rem; border: 1px solid var(--accent); font-size: 1.05rem; }
+    .month-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem; margin-top: 1rem; }
+    .month-card { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem; text-align: center; transition: all 0.2s; }
+    .month-card:hover { border-color: var(--accent); }
+    .month-card .amt { font-weight: 700; color: var(--accent2); font-size: 1.05rem; margin-top: 0.2rem; }
+    .disclaimer { font-size: 0.78rem; color: var(--muted); margin-top: 2rem; padding: 1.1rem; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+    .compare-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; margin-top: 0.85rem; }
+    .compare-card { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; }
+    .rec-card { background: var(--input); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 0.7rem; }
+    @media (max-width: 640px) {
+      .container { padding: 1.4rem 0.9rem; }
+      h1 { font-size: 1.55rem; }
+      header { padding: 0.7rem 1rem; }
+      nav button { font-size: 0.75rem; padding: 0.35rem 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">노후 현금흐름 연구소</div>
+    <nav>
+      <button class="active" data-sec="home">홈</button>
+      <button data-sec="tracker">월배당 ETF</button>
+      <button data-sec="recommend">ETF 추천</button>
+      <button data-sec="divsim">월배당 시뮬</button>
+      <button data-sec="portfolio">포트폴리오</button>
+      <button data-sec="taxcompare">인출 세금</button>
+      <button data-sec="calendar">노후 달력</button>
+      <button data-sec="reverse">역산</button>
+      <button data-sec="fire">경제적자유</button>
+      <button data-sec="deplete">자산소진</button>
+      <button data-sec="housing">주택연금</button>
+    </nav>
+    <button class="theme-btn" id="themeToggle">테마</button>
+  </header>
+
+  <div class="container">
+    <section id="home" class="section active">
+      <h1>노후 현금흐름 연구소</h1>
+      <p class="subtitle">월배당 ETF · 현금흐름 시뮬레이션 · 은퇴 설계 도구 모음</p>
+      <div class="home-grid">
+        <div class="home-card" onclick="go('tracker')"><h3>월배당 ETF 트래커</h3><p>분배금·분배율 검색 (확장 목록)</p></div>
+        <div class="home-card" onclick="go('recommend')"><h3>ETF 추천</h3><p>성향별 추천</p></div>
+        <div class="home-card" onclick="go('divsim')"><h3>월배당 시뮬레이터</h3><p>기간별 분배금 시뮬레이션</p></div>
+        <div class="home-card" onclick="go('portfolio')"><h3>포트폴리오 합산</h3><p>여러 ETF 합산</p></div>
+        <div class="home-card" onclick="go('taxcompare')"><h3>인출 세금 비교</h3><p>연금 vs 일반</p></div>
+        <div class="home-card" onclick="go('calendar')"><h3>노후 월급 달력</h3><p>세후 월 수입</p></div>
+        <div class="home-card" onclick="go('reverse')"><h3>현금흐름 역산</h3><p>필요 자산</p></div>
+        <div class="home-card" onclick="go('fire')"><h3>경제적 자유</h3><p>은퇴 나이</p></div>
+        <div class="home-card" onclick="go('deplete')"><h3>자산 소진</h3><p>버틸 기간</p></div>
+        <div class="home-card" onclick="go('housing')"><h3>주택연금</h3><p>월 수령 추정</p></div>
+      </div>
+    </section>
+
+    <!-- ETF Tracker -->
+    <section id="tracker" class="section">
+      <h1>월배당 ETF 트래커</h1>
+      <p class="subtitle">주요 인기 종목 중심 샘플 (전체 190개 이상 중 일부)</p>
+      <input type="text" id="searchETF" placeholder="종목명 또는 코드 검색" style="margin-bottom:0.6rem">
+      <div class="filter-bar">
+        <button class="active" data-region="all">전체</button>
+        <button data-region="kr">국내</button>
+        <button data-region="us">해외</button>
+      </div>
+      <div class="filter-bar">
+        <button class="active" data-filter="all">전체 시기</button>
+        <button data-filter="mid">월중</button>
+        <button data-filter="end">월말</button>
+      </div>
+      <div class="card" style="overflow-x:auto; padding:0.6rem 0.2rem">
+        <table id="etfTable"><thead><tr><th>종목</th><th>코드</th><th>구분</th><th>시기</th><th>분배율(대략)</th><th>유형</th></tr></thead><tbody></tbody></table>
+        <div style="padding:0.6rem"><button class="primary" onclick="exportETF()">엑셀 다운로드</button></div>
+      </div>
+    </section>
+
+    <!-- ETF Recommend -->
+    <section id="recommend" class="section">
+      <h1>ETF 추천</h1>
+      <p class="subtitle">투자 성향에 따라 주요 월배당 ETF 중 추천 (참고용)</p>
+      <div class="card">
+        <label>투자 성향</label>
+        <select id="recType">
+          <option value="high">고배당 중시 (분배율 우선)</option>
+          <option value="stable">안정형 (낮은 변동성 선호)</option>
+          <option value="growth">성장 겸비</option>
+          <option value="covered">커버드콜 위주</option>
+          <option value="usdiv">미국 배당 추종</option>
+        </select>
+        <button class="primary" onclick="recommendETF()">추천 보기</button>
+      </div>
+      <div id="recResult" class="card" style="display:none">
+        <div id="recList"></div>
+      </div>
+    </section>
+
+    <!-- Monthly Dividend Simulator -->
+    <section id="divsim" class="section">
+      <h1>월배당 시뮬레이터</h1>
+      <p class="subtitle">투자금과 분배율로 기간별 예상 분배금 시뮬레이션</p>
+      <div class="card">
+        <div class="grid">
+          <div><label>투자금 (만원)</label><input type="number" id="simAmount" value="10000"></div>
+          <div><label>연 분배율 (%)</label><input type="number" id="simYield" value="6" step="0.1"></div>
+          <div><label>시뮬레이션 기간 (년)</label><input type="number" id="simYears" value="10"></div>
+          <div><label>배당 성장률 (%/년)</label><input type="number" id="simGrowth" value="3" step="0.1"></div>
+          <div>
+            <label>재투자 여부</label>
+            <select id="simReinvest"><option value="no">재투자 안 함</option><option value="yes">재투자</option></select>
+          </div>
+        </div>
+        <button class="primary" onclick="calcDivSim()">시뮬레이션</button>
+      </div>
+      <div id="simResult" class="card" style="display:none">
+        <div class="result">
+          <p>초기 월 분배금 (세전): <strong id="simFirst"></strong></p>
+          <p>마지막 해 월 분배금 (세전): <strong id="simLast"></strong></p>
+          <p>기간 총 분배금 (세전): <strong id="simTotal" style="color:var(--accent2)"></strong></p>
+        </div>
+        <div id="simYearTable" style="margin-top:0.8rem; overflow-x:auto"></div>
+      </div>
+    </section>
+
+    <!-- Portfolio -->
+    <section id="portfolio" class="section">
+      <h1>월배당 포트폴리오 시뮬레이터</h1>
+      <p class="subtitle">주요 ETF별 투자금 입력 → 월 총 분배금 합산</p>
+      <div class="card">
+        <div id="portfolioInputs"></div>
+        <button class="primary" onclick="calcPortfolio()" style="margin-top:0.4rem">합산 계산</button>
+      </div>
+      <div id="portResult" class="card" style="display:none">
+        <div class="result">
+          <p>세전 월 총 분배금: <strong id="portBefore"></strong></p>
+          <p>세후 월 총 분배금 (15.4%): <strong id="portAfter" style="color:var(--accent2)"></strong></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tax Compare -->
+    <section id="taxcompare" class="section">
+      <h1>인출 방식 세금 비교</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>인출 금액 (만원)</label><input type="number" id="taxAmount" value="100"></div>
+          <div><label>나이</label><input type="number" id="taxAge" value="65"></div>
+        </div>
+        <button class="primary" onclick="calcTaxCompare()">비교하기</button>
+      </div>
+      <div id="taxResult" class="card" style="display:none">
+        <div class="compare-row" id="taxCompareGrid"></div>
+      </div>
+    </section>
+
+    <!-- Calendar -->
+    <section id="calendar" class="section">
+      <h1>노후 월급 달력</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>나이</label><input type="number" id="age" value="65"></div>
+          <div><label>국민연금 월액 (만원)</label><input type="number" id="nps" value="70"></div>
+          <div><label>연금저축·IRP 월 인출 (만원)</label><input type="number" id="privatePension" value="50"></div>
+          <div><label>월배당 투자금 (만원)</label><input type="number" id="etfAmount" value="10000"></div>
+          <div><label>예상 연 분배율 (%)</label><input type="number" id="divYield" value="6" step="0.1"></div>
+        </div>
+        <button class="primary" onclick="calcCalendar()">계산하기</button>
+      </div>
+      <div id="calResult" class="card" style="display:none">
+        <div class="result">
+          <div>세후 평균 월 수입</div>
+          <div id="avgMonthly" style="font-size:1.4rem; font-weight:700; color:var(--accent2)"></div>
+          <div>연간 세금: <span id="yearTax"></span></div>
+        </div>
+        <div class="month-grid" id="monthGrid"></div>
+      </div>
+    </section>
+
+    <!-- Reverse, FIRE, Deplete, Housing -->
+    <section id="reverse" class="section">
+      <h1>현금흐름 역산</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>원하는 월 생활비 (만원)</label><input type="number" id="desiredIncome" value="200"></div>
+          <div><label>국민연금 예상 월액 (만원)</label><input type="number" id="npsRev" value="70"></div>
+          <div><label>목표 분배율 (%)</label><input type="number" id="targetYield" value="5" step="0.1"></div>
+        </div>
+        <button class="primary" onclick="calcReverse()">계산하기</button>
+      </div>
+      <div id="revResult" class="card" style="display:none">
+        <div class="result">
+          <p>부족한 월 금액: <strong id="gap"></strong></p>
+          <p>필요 금융자산 (대략): <strong id="needAsset" style="color:var(--accent2)"></strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fire" class="section">
+      <h1>경제적 자유 계산기</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>현재 나이</label><input type="number" id="fireAge" value="35"></div>
+          <div><label>현재 금융자산 (만원)</label><input type="number" id="fireAsset" value="10000"></div>
+          <div><label>월 적립액 (만원)</label><input type="number" id="fireSave" value="150"></div>
+          <div><label>예상 연 수익률 (%)</label><input type="number" id="fireReturn" value="7" step="0.1"></div>
+          <div><label>목표 월 생활비 (만원)</label><input type="number" id="fireExpense" value="250"></div>
+          <div><label>안전 인출률 (%)</label><input type="number" id="fireSWR" value="4" step="0.1"></div>
+        </div>
+        <button class="primary" onclick="calcFIRE()">계산하기</button>
+      </div>
+      <div id="fireResult" class="card" style="display:none">
+        <div class="result">
+          <p>필요 자산: <strong id="fireNeed"></strong></p>
+          <p>예상 도달 나이: <strong id="fireAgeResult" style="color:var(--accent2)"></strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="deplete" class="section">
+      <h1>자산 소진 시뮬레이터</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>시작 자산 (만원)</label><input type="number" id="depAsset" value="50000"></div>
+          <div><label>월 생활비 (만원)</label><input type="number" id="depExpense" value="200"></div>
+          <div><label>연 수익률 (%)</label><input type="number" id="depReturn" value="4" step="0.1"></div>
+          <div><label>국민연금 월액 (만원)</label><input type="number" id="depNps" value="70"></div>
+        </div>
+        <button class="primary" onclick="calcDeplete()">계산하기</button>
+      </div>
+      <div id="depResult" class="card" style="display:none">
+        <div class="result">
+          <p>예상 버틸 기간: <strong id="depYears" style="color:var(--accent2)"></strong></p>
+          <p id="depDetail" style="margin-top:0.3rem; color:var(--muted); font-size:0.82rem"></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="housing" class="section">
+      <h1>주택연금 간단 계산기</h1>
+      <div class="card">
+        <div class="grid">
+          <div><label>가입 나이</label><input type="number" id="hpAge" value="65"></div>
+          <div><label>주택 시세 (만원)</label><input type="number" id="hpPrice" value="50000"></div>
+        </div>
+        <button class="primary" onclick="calcHousing()">추정하기</button>
+      </div>
+      <div id="hpResult" class="card" style="display:none">
+        <div class="result">
+          <p>예상 월 수령액 (대략): <strong id="hpMonthly" style="color:var(--accent2)"></strong></p>
+          <p style="margin-top:0.3rem; color:var(--muted); font-size:0.8rem">※ 참고용입니다.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="disclaimer container">
+    <strong>면책:</strong> 모든 계산은 참고용 시뮬레이션입니다. ETF 데이터는 샘플이며 실제 분배율·분배금은 변동됩니다. 공식 정보를 반드시 확인하세요. 투자 결정 책임은 본인에게 있습니다.
+  </div>
+
+  <script>
+    const etfData = [
+      {name:"KODEX 200타겟위클리커버드콜", code:"498400", timing:"end", yield:11.6, type:"covered", region:"kr"},
+      {name:"TIGER 배당커버드콜액티브", code:"472150", timing:"end", yield:13.8, type:"covered", region:"kr"},
+      {name:"TIGER 미국나스닥100타겟데일리커버드콜", code:"486290", timing:"end", yield:13.8, type:"covered", region:"kr"},
+      {name:"RISE 200위클리커버드콜", code:"475720", timing:"end", yield:13.7, type:"covered", region:"kr"},
+      {name:"KODEX 미국배당커버드콜액티브", code:"441640", timing:"end", yield:8.8, type:"covered", region:"kr"},
+      {name:"TIGER 미국30년국채커버드콜액티브(H)", code:"476550", timing:"end", yield:12.8, type:"covered", region:"kr"},
+      {name:"KODEX 미국30년국채타겟커버드콜(합성 H)", code:"481060", timing:"end", yield:12.8, type:"covered", region:"kr"},
+      {name:"TIGER 미국배당다우존스", code:"458730", timing:"mid", yield:2.8, type:"usdiv", region:"kr"},
+      {name:"SOL 미국배당다우존스", code:"446720", timing:"mid", yield:2.9, type:"usdiv", region:"kr"},
+      {name:"PLUS 고배당주", code:"161510", timing:"end", yield:3.4, type:"div", region:"kr"},
+      {name:"TIGER 리츠부동산인프라", code:"329200", timing:"end", yield:8.0, type:"reit", region:"kr"},
+      {name:"TIGER 은행고배당플러스TOP10", code:"466940", timing:"end", yield:3.3, type:"div", region:"kr"},
+      {name:"TIME Korea플러스배당액티브", code:"441800", timing:"end", yield:5.1, type:"div", region:"kr"},
+      {name:"KODEX CD금리액티브(합성)", code:"459580", timing:"mid", yield:2.0, type:"stable", region:"kr"},
+      {name:"ACE 미국30년국채액티브(H)", code:"453850", timing:"mid", yield:3.9, type:"bond", region:"kr"},
+      {name:"KODEX 단기채권PLUS", code:"214980", timing:"mid", yield:1.9, type:"bond", region:"kr"},
+      {name:"ACE 미국반도체데일리타겟커버드콜(합성)", code:"", timing:"mid", yield:15.0, type:"covered", region:"kr"},
+      {name:"RISE 코리아밸류업위클리고정커버드콜", code:"", timing:"end", yield:14.0, type:"covered", region:"kr"},
+      {name:"SOL 미국30년국채커버드콜(합성)", code:"", timing:"end", yield:9.4, type:"covered", region:"kr"},
+      {name:"KODEX 한국부동산리츠인프라", code:"", timing:"mid", yield:6.5, type:"reit", region:"kr"},
+      {name:"PLUS K리츠", code:"", timing:"end", yield:7.2, type:"reit", region:"kr"},
+      {name:"TIGER 미국캐시카우100", code:"", timing:"end", yield:4.5, type:"usdiv", region:"kr"},
+      {name:"SOL 금융지주플러스고배당", code:"484880", timing:"end", yield:4.0, type:"div", region:"kr"},
+      {name:"RISE 고배당", code:"266160", timing:"end", yield:4.5, type:"div", region:"kr"},
+      {name:"KODEX 주주환원고배당주", code:"", timing:"end", yield:3.8, type:"div", region:"kr"},
+      {name:"SCHD Schwab U.S. Dividend Equity", code:"SCHD", timing:"quarter", yield:3.2, type:"growth", region:"us"},
+      {name:"VIG Vanguard Dividend Appreciation", code:"VIG", timing:"quarter", yield:1.5, type:"growth", region:"us"},
+      {name:"DGRO iShares Core Dividend Growth", code:"DGRO", timing:"quarter", yield:2.0, type:"growth", region:"us"},
+      {name:"NOBL ProShares S&P 500 Dividend Aristocrats", code:"NOBL", timing:"quarter", yield:2.2, type:"growth", region:"us"},
+      {name:"VIGI Vanguard International Dividend Appreciation", code:"VIGI", timing:"quarter", yield:2.0, type:"growth", region:"us"},
+      {name:"SCHY Schwab International Dividend Equity", code:"SCHY", timing:"quarter", yield:3.5, type:"growth", region:"us"},
+      {name:"FDVV Fidelity High Dividend", code:"FDVV", timing:"quarter", yield:2.8, type:"growth", region:"us"},
+      {name:"JEPI JPMorgan Equity Premium Income", code:"JEPI", timing:"end", yield:8.0, type:"covered", region:"us"},
+      {name:"JEPQ JPMorgan Nasdaq Equity Premium", code:"JEPQ", timing:"end", yield:11.6, type:"covered", region:"us"},
+      {name:"QYLD Global X Nasdaq 100 Covered Call", code:"QYLD", timing:"end", yield:12.4, type:"covered", region:"us"},
+      {name:"XYLD Global X S&P 500 Covered Call", code:"XYLD", timing:"end", yield:10.5, type:"covered", region:"us"},
+      {name:"RYLD Global X Russell 2000 Covered Call", code:"RYLD", timing:"end", yield:11.2, type:"covered", region:"us"},
+      {name:"SPYI NEOS S&P 500 High Income", code:"SPYI", timing:"end", yield:11.4, type:"covered", region:"us"},
+      {name:"QQQI NEOS Nasdaq 100 High Income", code:"QQQI", timing:"end", yield:14.1, type:"covered", region:"us"},
+      {name:"DIVO Amplify CWP Enhanced Dividend", code:"DIVO", timing:"end", yield:4.9, type:"div", region:"us"},
+      {name:"GPIX Goldman Sachs S&P 500 Premium Income", code:"GPIX", timing:"end", yield:8.5, type:"covered", region:"us"},
+      {name:"GPIQ Goldman Sachs Nasdaq-100 Premium Income", code:"GPIQ", timing:"end", yield:10.5, type:"covered", region:"us"},
+      {name:"VYM Vanguard High Dividend Yield", code:"VYM", timing:"quarter", yield:2.9, type:"div", region:"us"},
+      {name:"HDV iShares Core High Dividend", code:"HDV", timing:"quarter", yield:3.1, type:"div", region:"us"},
+      {name:"DGRO iShares Core Dividend Growth", code:"DGRO", timing:"quarter", yield:2.0, type:"div", region:"us"},
+      {name:"VIG Vanguard Dividend Appreciation", code:"VIG", timing:"quarter", yield:1.5, type:"div", region:"us"},
+      {name:"SPHD Invesco S&P 500 High Dividend Low Vol", code:"SPHD", timing:"quarter", yield:5.0, type:"div", region:"us"},
+      {name:"SDIV Global X SuperDividend", code:"SDIV", timing:"end", yield:9.0, type:"div", region:"us"},
+      {name:"QYLG Global X Nasdaq 100 Covered Call & Growth", code:"QYLG", timing:"end", yield:6.5, type:"covered", region:"us"}
+    ];
+
+    let currentFilter = 'all', currentRegion = 'all', currentSearch = '';
+
+    function go(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      document.querySelector(`nav button[data-sec="${id}"]`).classList.add('active');
+    }
+    document.querySelectorAll('nav button').forEach(btn => btn.addEventListener('click', () => go(btn.dataset.sec)));
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.body.dataset.theme = document.body.dataset.theme === 'light' ? '' : 'light';
+    });
+
+    function getTaxRate(age) { return age < 70 ? 0.055 : age < 80 ? 0.044 : 0.033; }
+
+    function recommendETF() {
+      const type = document.getElementById('recType').value;
+      let sorted = [...etfData];
+      if (type === 'high') sorted.sort((a,b) => b.yield - a.yield);
+      else if (type === 'stable') sorted = sorted.filter(e => e.type === 'stable' || e.type === 'bond' || e.yield < 5).sort((a,b) => a.yield - b.yield);
+      else if (type === 'growth') sorted.sort((a,b) => (b.tr || 0) - (a.tr || 0));
+      else if (type === 'covered') sorted = sorted.filter(e => e.type === 'covered').sort((a,b) => b.yield - a.yield);
+      else if (type === 'usdiv') sorted = sorted.filter(e => e.type === 'usdiv');
+      const top = sorted.slice(0, 5);
+      document.getElementById('recList').innerHTML = top.map(e => `
+        <div class="rec-card">
+          <strong>${e.name}</strong> ${e.code ? '('+e.code+')' : ''}<br>
+          분배율 약 ${e.yield}% · ${e.timing === 'mid' ? '월중' : '월말'} · ${e.type}
+        </div>
+      `).join('');
+      document.getElementById('recResult').style.display = 'block';
+    }
+
+    function calcDivSim() {
+      let amount = +document.getElementById('simAmount').value * 10000;
+      const baseYield = +document.getElementById('simYield').value / 100;
+      const years = +document.getElementById('simYears').value;
+      const growth = +document.getElementById('simGrowth').value / 100;
+      const reinvest = document.getElementById('simReinvest').value === 'yes';
+      let totalDiv = 0;
+      let currentYield = baseYield;
+      let yearData = [];
+      for (let y = 1; y <= years; y++) {
+        const yearlyDiv = amount * currentYield;
+        totalDiv += yearlyDiv;
+        yearData.push({year: y, monthly: yearlyDiv / 12, yearly: yearlyDiv, asset: amount});
+        if (reinvest) amount += yearlyDiv;
+        currentYield *= (1 + growth);
+      }
+      document.getElementById('simFirst').textContent = Math.round(yearData[0].monthly).toLocaleString() + '원';
+      document.getElementById('simLast').textContent = Math.round(yearData[yearData.length-1].monthly).toLocaleString() + '원';
+      document.getElementById('simTotal').textContent = Math.round(totalDiv).toLocaleString() + '원';
+      document.getElementById('simYearTable').innerHTML = `
+        <table><thead><tr><th>연차</th><th>월 분배금</th><th>연 분배금</th><th>자산</th></tr></thead>
+        <tbody>${yearData.map(d => `<tr><td>${d.year}년</td><td>${Math.round(d.monthly).toLocaleString()}</td><td>${Math.round(d.yearly).toLocaleString()}</td><td>${Math.round(d.asset).toLocaleString()}</td></tr>`).join('')}</tbody></table>
+      `;
+      document.getElementById('simResult').style.display = 'block';
+    }
+
+    function initPortfolio() {
+      const container = document.getElementById('portfolioInputs');
+      container.innerHTML = etfData.slice(0, 15).map((e, i) => `
+        <div style="display:flex; gap:0.4rem; align-items:center; margin-bottom:0.35rem;">
+          <div style="flex:2; font-size:0.82rem">${e.name}</div>
+          <input type="number" id="port_${i}" placeholder="만원" value="0" style="flex:1; margin:0">
+        </div>
+      `).join('');
+    }
+
+    function calcPortfolio() {
+      let totalBefore = 0;
+      etfData.slice(0, 15).forEach((e, i) => {
+        const amt = +document.getElementById(`port_${i}`).value * 10000;
+        totalBefore += (amt * (e.yield / 100)) / 12;
+      });
+      const totalAfter = totalBefore * (1 - 0.154);
+      document.getElementById('portBefore').textContent = Math.round(totalBefore).toLocaleString() + '원';
+      document.getElementById('portAfter').textContent = Math.round(totalAfter).toLocaleString() + '원';
+      document.getElementById('portResult').style.display = 'block';
+    }
+
+    function calcTaxCompare() {
+      const amount = +document.getElementById('taxAmount').value * 10000;
+      const age = +document.getElementById('taxAge').value;
+      const pensionTaxRate = getTaxRate(age);
+      const pensionTax = amount * pensionTaxRate;
+      const generalTax = amount * 0.154;
+      document.getElementById('taxCompareGrid').innerHTML = `
+        <div class="compare-card">
+          <div style="font-weight:600">연금저축 / IRP</div>
+          <div>세금: ${Math.round(pensionTax).toLocaleString()}원</div>
+          <div style="color:var(--accent2); font-weight:700; margin-top:0.25rem">실수령: ${Math.round(amount - pensionTax).toLocaleString()}원</div>
+          <div style="font-size:0.72rem; color:var(--muted)">세율 ${(pensionTaxRate*100).toFixed(1)}%</div>
+        </div>
+        <div class="compare-card">
+          <div style="font-weight:600">일반 계좌</div>
+          <div>세금: ${Math.round(generalTax).toLocaleString()}원</div>
+          <div style="color:var(--accent2); font-weight:700; margin-top:0.25rem">실수령: ${Math.round(amount - generalTax).toLocaleString()}원</div>
+          <div style="font-size:0.72rem; color:var(--muted)">세율 15.4%</div>
+        </div>
+      `;
+      document.getElementById('taxResult').style.display = 'block';
+    }
+
+    function calcCalendar() {
+      const age = +document.getElementById('age').value;
+      const nps = +document.getElementById('nps').value * 10000;
+      const priv = +document.getElementById('privatePension').value * 10000;
+      const etfAmt = +document.getElementById('etfAmount').value * 10000;
+      const yieldR = +document.getElementById('divYield').value / 100;
+      const privTaxRate = getTaxRate(age);
+      const privAfter = priv * (1 - privTaxRate);
+      const monthlyDiv = (etfAmt * yieldR) / 12;
+      const divTax = monthlyDiv * 0.154;
+      const totalMonthly = nps + privAfter + (monthlyDiv - divTax);
+      const yearTax = (priv * privTaxRate + divTax) * 12;
+      document.getElementById('avgMonthly').textContent = Math.round(totalMonthly).toLocaleString() + '원';
+      document.getElementById('yearTax').textContent = Math.round(yearTax).toLocaleString() + '원';
+      document.getElementById('monthGrid').innerHTML = Array.from({length:12}, (_,i) => `
+        <div class="month-card"><div style="font-size:0.68rem;color:var(--muted)">${i+1}월</div><div class="amt">${Math.round(totalMonthly).toLocaleString()}</div></div>
+      `).join('');
+      document.getElementById('calResult').style.display = 'block';
+    }
+
+    function calcReverse() {
+      const desired = +document.getElementById('desiredIncome').value * 10000;
+      const nps = +document.getElementById('npsRev').value * 10000;
+      const yld = +document.getElementById('targetYield').value / 100;
+      const gap = Math.max(0, desired - nps);
+      const need = yld > 0 ? gap * 12 / yld : 0;
+      document.getElementById('gap').textContent = Math.round(gap).toLocaleString() + '원';
+      document.getElementById('needAsset').textContent = Math.round(need).toLocaleString() + '원';
+      document.getElementById('revResult').style.display = 'block';
+    }
+
+    function calcFIRE() {
+      const age = +document.getElementById('fireAge').value;
+      const asset = +document.getElementById('fireAsset').value * 10000;
+      const save = +document.getElementById('fireSave').value * 10000;
+      const ret = +document.getElementById('fireReturn').value / 100;
+      const expense = +document.getElementById('fireExpense').value * 10000;
+      const swr = +document.getElementById('fireSWR').value / 100;
+      const need = expense * 12 / swr;
+      let current = asset;
+      let years = 0;
+      const monthlyRate = Math.pow(1 + ret, 1/12) - 1;
+      while (current < need && years < 60) {
+        for (let m = 0; m < 12; m++) current = current * (1 + monthlyRate) + save;
+        years++;
+      }
+      document.getElementById('fireNeed').textContent = Math.round(need).toLocaleString() + '원';
+      document.getElementById('fireAgeResult').textContent = years >= 60 ? '60년 이상' : (age + years) + '세';
+      document.getElementById('fireResult').style.display = 'block';
+    }
+
+    function calcDeplete() {
+      let asset = +document.getElementById('depAsset').value * 10000;
+      const expense = +document.getElementById('depExpense').value * 10000;
+      const ret = +document.getElementById('depReturn').value / 100;
+      const nps = +document.getElementById('depNps').value * 10000;
+      const monthlyRate = Math.pow(1 + ret, 1/12) - 1;
+      const netExpense = Math.max(0, expense - nps);
+      let months = 0;
+      while (asset > 0 && months < 600) {
+        asset = asset * (1 + monthlyRate) - netExpense;
+        months++;
+      }
+      document.getElementById('depYears').textContent = months >= 600 ? '50년 이상' : (months/12).toFixed(1) + '년';
+      document.getElementById('depDetail').textContent = `월 순지출 ${Math.round(netExpense).toLocaleString()}원 기준`;
+      document.getElementById('depResult').style.display = 'block';
+    }
+
+    function calcHousing() {
+      const age = +document.getElementById('hpAge').value;
+      const price = +document.getElementById('hpPrice').value * 10000;
+      const factor = age >= 70 ? 0.0045 : age >= 65 ? 0.0038 : 0.0032;
+      document.getElementById('hpMonthly').textContent = Math.round(price * factor).toLocaleString() + '원';
+      document.getElementById('hpResult').style.display = 'block';
+    }
+
+    function renderETF() {
+      let data = etfData;
+      if (currentRegion !== 'all') data = data.filter(e => e.region === currentRegion);
+      if (currentFilter !== 'all') data = data.filter(e => e.timing === currentFilter);
+      if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        data = data.filter(e => e.name.toLowerCase().includes(q) || (e.code && e.code.toLowerCase().includes(q)));
+      }
+      document.querySelector('#etfTable tbody').innerHTML = data.map(e => `
+        <tr>
+          <td>${e.name}</td>
+          <td>${e.code || '-'}</td>
+          <td>${e.region === 'kr' ? '국내' : '해외'}</td>
+          <td>${e.timing === 'mid' ? '월중' : e.timing === 'end' ? '월말' : '분기'}</td>
+          <td>${e.yield}%</td>
+          <td>${e.type}</td>
+        </tr>
+      `).join('');
+    }
+    document.getElementById('searchETF').addEventListener('input', e => { currentSearch = e.target.value; renderETF(); });
+    document.querySelectorAll('.filter-bar button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const isRegion = btn.dataset.region !== undefined;
+        if (isRegion) {
+          document.querySelectorAll('.filter-bar button[data-region]').forEach(b => b.classList.remove('active'));
+          currentRegion = btn.dataset.region;
+        } else {
+          document.querySelectorAll('.filter-bar button[data-filter]').forEach(b => b.classList.remove('active'));
+          currentFilter = btn.dataset.filter;
+        }
+        btn.classList.add('active');
+        renderETF();
+      });
+    });
+    function exportETF() {
+      const ws = XLSX.utils.json_to_sheet(etfData.map(e => ({종목:e.name, 코드:e.code||'', 구분:e.region==='kr'?'국내':'해외', 시기:e.timing==='mid'?'월중':e.timing==='end'?'월말':'분기', 분배율:e.yield, 유형:e.type})));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "월배당ETF");
+      XLSX.writeFile(wb, "월배당ETF.xlsx");
+    }
+
+    initPortfolio();
+    renderETF();
+  </script>
+</body>
+</html>
